@@ -101,7 +101,7 @@ spec:
       volumes:
       - name: grafana-config
         configMap:
-            name: grafana-config
+          name: grafana-config
       - name: sc-dashboard-volume
         emptyDir: {}
       - name: sc-dashboard-provider
