@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: loki
+  namespace: default
+  labels:
+    app: loki
+spec:
+  serviceName: loki
+  selector:
+    matchLabels:
+      app: loki
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: loki
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "http-metrics"
+    spec:
+      serviceAccountName: loki
+      securityContext:
+        fsGroup: 10001
+        runAsGroup: 10001
+        runAsUser: 10001
+        runAsNonRoot: true
+      containers:
+      - name: loki
+        image: grafana/loki:1.5.0
+        args:
+          - "-config.file=/etc/loki/loki.yaml"
+        volumeMounts:
+          - name: config
+            mountPath: /etc/loki
+          - name: storage-volume
+            mountPath: /data
+        ports:
+        - name: http-metrics
+          containerPort: 3100
+          protocol: TCP
+        livenessProbe:
+          httpGet:
+            path: /ready
+            port: http-metrics
+          initialDelaySeconds: 45
+        readinessProbe:
+          httpGet:
+            path: /ready
+            port: http-metrics
+          initialDelaySeconds: 45
+        resources:
+          limits:
+            cpu: 250m
+            memory: 256Mi
+          requests:
+            cpu: 200m
+            memory: 128Mi
+        securityContext:
+          readOnlyRootFilesystem: true
+      volumes:
+        - name: config
+          configMap:
+              name: loki
+      imagePullSecrets:
+        - name: dockerregistrylogin
+  volumeClaimTemplates:
+  - metadata:
+      name: storage-volume
+    spec:
+      storageClassName: gp2
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 20Gi
