@@ -1,0 +1,70 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: thanos-store
+  namespace: monitoring
+  labels:
+    component: object-store-gateway
+    name: thanos-store
+spec:
+  serviceName: thanos-store
+  selector:
+    matchLabels:
+      component: object-store-gateway
+      name: thanos-store
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        component: object-store-gateway
+        name: thanos-store
+    spec:
+      containers:
+      - name: thanos-store
+        image: quay.io/thanos/thanos:v0.13.0-rc.0
+        args:
+        - "store"
+        - "--log.level=debug"
+        - "--data-dir=/var/thanos/store"
+        - "--objstore.config=$(OBJSTORE_CONFIG)"
+        env:
+        - name: OBJSTORE_CONFIG
+          valueFrom:
+            secretKeyRef:
+              key: thanos.yaml
+              name: thanos-objstore-config
+        livenessProbe:
+          failureThreshold: 8
+          httpGet:
+            path: /-/healthy
+            port: 10902
+            scheme: HTTP
+          periodSeconds: 30
+        ports:
+        - containerPort: 10901
+          name: grpc
+        - containerPort: 10902
+          name: http
+        readinessProbe:
+          failureThreshold: 20
+          httpGet:
+            path: /-/ready
+            port: 10902
+            scheme: HTTP
+          periodSeconds: 5
+        terminationMessagePolicy: FallbackToLogsOnError
+        volumeMounts:
+        - name: storage-volume
+          mountPath: /data/
+      terminationGracePeriodSeconds: 120
+  volumeClaimTemplates:
+  - metadata:
+      name: storage-volume
+    spec:
+      storageClassName: standard
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 8Gi
