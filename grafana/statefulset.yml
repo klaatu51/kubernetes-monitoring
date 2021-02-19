@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: grafana
+  namespace: monitoring
+  labels:
+    app: grafana
+spec:
+  serviceName: grafana
+  selector:
+    matchLabels:
+      app: grafana
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      serviceAccountName: grafana
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        fsGroup: 472
+      initContainers:
+      - name: grafana-sc-datasources
+        image: "kiwigrid/k8s-sidecar:0.1.20"
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: METHOD
+          value: LIST
+        - name: LABEL
+          value: "grafana_datasource"
+        - name: FOLDER
+          value: "/etc/grafana/provisioning/datasources"
+        - name: RESOURCE
+          value: "both"
+        resources:
+          {}
+        volumeMounts:
+        - name: sc-datasources-volume
+          mountPath: "/etc/grafana/provisioning/datasources"
+      containers:
+      - name: grafana-sc-dashboard
+        image: kiwigrid/k8s-sidecar:0.1.20
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: LABEL
+          value: "grafana_dashboard"
+        - name: FOLDER
+          value: "/tmp/dashboards"
+        - name: RESOURCE
+          value: "both"
+        resources:
+          {}
+        volumeMounts:
+        - name: sc-dashboard-volume
+          mountPath: "/tmp/dashboards"
+      - image: grafana/grafana:7.0.0-beta3
+        name: grafana
+        volumeMounts:
+        - name: storage-volume
+          mountPath: "/var/lib/grafana"
+        - name: grafana-config
+          mountPath: "/etc/grafana/grafana.ini"
+          subPath: grafana.ini
+        - name: sc-dashboard-volume
+          mountPath: "/tmp/dashboards"
+        - name: sc-dashboard-provider
+          mountPath: "/etc/grafana/provisioning/dashboards/sc-dashboardproviders.yaml"
+          subPath: provider.yaml
+        - name: sc-datasources-volume
+          mountPath: "/etc/grafana/provisioning/datasources"
+        env:
+        - name: GF_AUTH_BASIC_ENABLED
+          value: "true"
+        - name: GF_SECURITY_ADMIN_USER
+          valueFrom:
+            secretKeyRef:
+              name: grafana
+              key: admin-username
+        - name: GF_SECURITY_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: grafana
+              key: admin-password
+        - name: GF_AUTH_ANONYMOUS_ENABLED
+          value: "false"
+        ports:
+        - containerPort: 3000
+          name: http
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 30
+          timeoutSeconds: 1
+        resources:
+          {}
+      volumes:
+      - name: grafana-config
+        configMap:
+            name: grafana-config
+      - name: sc-dashboard-volume
+        emptyDir: {}
+      - name: sc-dashboard-provider
+        configMap:
+          name: grafana-config-dashboards
+      - name: sc-datasources-volume
+        emptyDir: {}
+  volumeClaimTemplates:
+  - metadata:
+      name: storage-volume
+    spec:
+      storageClassName: standard
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 8Gi
