@@ -1,0 +1,90 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: alertmanager
+  namespace: monitoring
+  labels:
+    app: prometheus
+    component: alertmanager
+spec:
+  serviceName: alertmanager
+  selector:
+    matchLabels:
+      app: prometheus
+      component: alertmanager
+  replicas: 1
+  updateStrategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: prometheus
+        component: alertmanager
+    spec:
+      containers:
+      - name: alertmanager
+        image: quay.io/prometheus/alertmanager:v0.20.0
+        env:
+        - name: POD_IP
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: status.podIP
+        args:
+          - --config.file=/etc/config/alertmanager.yml
+          - --storage.path=/data
+          - --cluster.advertise-address=$(POD_IP):6783
+          - --web.external-url=http://localhost:9093
+        ports:
+          - containerPort: 9093
+        readinessProbe:
+          httpGet:
+            path: /-/ready
+            port: 9093
+          initialDelaySeconds: 30
+          timeoutSeconds: 30
+        resources:
+          limits:
+            cpu: 250m
+            memory: 64Mi
+          requests:
+            cpu: 200m
+            memory: 32Mi
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/config
+          readOnly: true
+        - name: storage-volume
+          mountPath: /data
+      - name: prometheus-alertmanager-configmap-reload
+        image: "jimmidyson/configmap-reload:v0.3.0"
+        imagePullPolicy: "IfNotPresent"
+        args:
+          - --volume-dir=/etc/config
+          - --webhook-url=http://127.0.0.1:9093/-/reload
+        resources:
+          {}
+        volumeMounts:
+          - name: config-volume
+            mountPath: /etc/config
+            readOnly: true
+      securityContext:
+        fsGroup: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        runAsUser: 65534
+      volumes:
+      - name: config-volume
+        configMap:
+          name: prometheus-alertmanager
+      imagePullSecrets:
+        - name: dockerregistrylogin
+  volumeClaimTemplates:
+  - metadata:
+      name: storage-volume
+    spec:
+      storageClassName: standard
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 20Gi

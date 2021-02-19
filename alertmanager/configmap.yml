@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  labels:
+    app: prometheus
+    component: alertmanager
+  name: prometheus-alertmanager
+  namespace: monitoring
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+      smtp_smarthost: 'mail.authsmtp.com:2525'
+      smtp_auth_username: 'ac62235'
+      smtp_auth_password: 'm41l1t0ut!m41l1t0ut!'
+      opsgenie_api_key: '40c3884e-13fb-4b3c-ad39-735f840b7151'
+      opsgenie_api_url: 'https://api.eu.opsgenie.com/'        
+    route:
+      group_by: ['alertname']
+      group_wait: 10s
+      group_interval: 10s
+      repeat_interval: 1h
+      receiver: 'support-email'
+      routes:
+      - match:
+          severity: 'warning'
+        receiver: 'support-email'
+      - match:
+          severity: 'critical'
+        receiver: 'support-pager'
+    inhibit_rules:
+    - source_match:
+        severity: 'critical'
+      target_match:
+        severity: 'warning'
+      equal: ['alertname', 'dev', 'instance']
+    receivers:
+    - name: 'support-pager'
+      opsgenie_configs:
+      - responders:
+        - name: Support
+          type: team
+    - name: 'support-email'
+      email_configs:
+      - from: prom-development@voxgenhosted.com
+        to: vox-alerts-notifications@voxgen.com
