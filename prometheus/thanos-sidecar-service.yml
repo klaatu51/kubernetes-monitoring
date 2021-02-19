@@ -4,7 +4,7 @@ metadata:
   labels:
     name: thanos-sidecar
   name: thanos-sidecar
-  namespace: default
+  namespace: monitoring
 spec:
   ports:
   - name: grpc

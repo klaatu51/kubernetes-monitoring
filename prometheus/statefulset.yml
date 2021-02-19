@@ -29,26 +29,26 @@ spec:
         image: "jimmidyson/configmap-reload:v0.3.0"
         imagePullPolicy: "IfNotPresent"
         args:
-          - "--volume-dir=/etc/config"
+          - "--volume-dir=/etc/prometheus"
           - "--webhook-url=http://127.0.0.1:9090/-/reload"
         resources:
           {}
         volumeMounts:
-          - name: config-volume
-            mountPath: /etc/config
+          - name: prometheus-server-conf
+            mountPath: /etc/prometheus
             readOnly: true
       - name: prometheus
         image: quay.io/prometheus/prometheus:v2.20.1
         args:
-          - --storage.tsdb.retention=4h
-          - --config.file=/etc/prometheus-shared/prometheus.yml
-          - --storage.tsdb.path=/data
-          - --web.console.libraries=/etc/prometheus/console_libraries
-          - --web.console.templates=/etc/prometheus/consoles
-          - --web.enable-lifecycle
-          - --log.level=debug
-          - --storage.tsdb.max-block-duration=2h
-          - --storage.tsdb.min-block-duration=2h
+          - "--storage.tsdb.retention=4h"
+          - "--config.file=/etc/prometheus-shared/prometheus.yml"
+          - "--storage.tsdb.path=/data"
+          - "--web.console.libraries=/etc/prometheus/console_libraries"
+          - "--web.console.templates=/etc/prometheus/consoles"
+          - "--web.enable-lifecycle"
+          - "--log.level=debug"
+          - "--storage.tsdb.max-block-duration=2h"
+          - "--storage.tsdb.min-block-duration=2h"
         ports:
           - name: prometheus
             containerPort: 9090
@@ -74,8 +74,8 @@ spec:
         volumeMounts:
           - name: prometheus-storage
             mountPath: /data/
-            - name: prometheus-config
-              mountPath: /etc/prometheus
+          - name: prometheus-server-conf
+            mountPath: /etc/prometheus
             readOnly: false
           - name: prometheus-config-shared
             mountPath: /etc/prometheus-shared/
@@ -85,18 +85,17 @@ spec:
         imagePullPolicy: "IfNotPresent"
         args:
           - sidecar
-          - --log.level=debug
-          - --tsdb.path=/data/
-          - --prometheus.url=http://127.0.0.1:9090
-          - '--objstore.config={type: GCS, config: {bucket: BUCKET_REPLACE_ME}}'
-          - --reloader.config-file=/etc/prometheus-config/prometheus.yml
-          - --reloader.config-envsubst-file=/etc/prometheus-shared/prometheus.yml
-          - --reloader.rule-dir=/etc/prometheus-config/rules
+          - "--log.level=debug"
+          - "--tsdb.path=/data/"
+          - "--prometheus.url=http://127.0.0.1:9090"
+          - "--objstore.config-file={type: GCS, config: {BUCKET_REPLACE_ME}}"
+          - "--reloader.config-file=/etc/prometheus/prometheus.yml"
+          - "--reloader.config-envsubst-file=/etc/prometheus-shared/prometheus.yml"
         volumeMounts:
-          - name: storage-volume
+          - name: prometheus-storage
             mountPath: /data/
-            - name: prometheus-config
-              mountPath: /etc/prometheus
+          - name: prometheus-server-conf
+            mountPath: /etc/prometheus
             readOnly: false
           - name: prometheus-config-shared
             mountPath: /etc/prometheus-shared/
@@ -109,9 +108,7 @@ spec:
           - containerPort: 10900
             name: cluster
       volumes:
-        - name: prometheus-storage
-          mountPath: /data
-        - name: prometheus-config
+        - name: prometheus-server-conf
           configMap:
             name: prometheus-server-conf
         - name: prometheus-config-shared
