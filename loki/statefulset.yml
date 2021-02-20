@@ -35,7 +35,7 @@ spec:
         volumeMounts:
           - name: config
             mountPath: /etc/loki
-          - name: storage-volume
+          - name: loki-storage
             mountPath: /data
         ports:
         - name: http-metrics
@@ -63,14 +63,12 @@ spec:
       volumes:
         - name: config
           configMap:
-              name: loki
-      imagePullSecrets:
-        - name: dockerregistrylogin
+              name: loki-conf
   volumeClaimTemplates:
   - metadata:
-      name: storage-volume
+      name: loki-storage
     spec:
-      storageClassName: gp2
+      storageClassName: standard
       accessModes: ["ReadWriteOnce"]
       resources:
         requests:

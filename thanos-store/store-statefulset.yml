@@ -27,7 +27,7 @@ spec:
         args:
         - "store"
         - "--log.level=debug"
-        - "--data-dir=/var/thanos/store"
+        - "--data-dir=/data/"
         - "--objstore.config=$(OBJSTORE_CONFIG)"
         env:
         - name: OBJSTORE_CONFIG
@@ -56,12 +56,12 @@ spec:
           periodSeconds: 5
         terminationMessagePolicy: FallbackToLogsOnError
         volumeMounts:
-        - name: storage-volume
+        - name: thanos-storage
           mountPath: /data/
       terminationGracePeriodSeconds: 120
   volumeClaimTemplates:
   - metadata:
-      name: storage-volume
+      name: thanos-storage
     spec:
       storageClassName: standard
       accessModes: ["ReadWriteOnce"]

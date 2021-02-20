@@ -24,10 +24,10 @@ spec:
         image: quay.io/thanos/thanos:thanos:v0.13.0-rc.0
         args:
         - compact
-        - --wait
-        - --objstore.config=$(OBJSTORE_CONFIG)
-        - --data-dir=/var/thanos/compact
-        - --debug.accept-malformed-index
+        - "--wait"
+        - "--objstore.config=$(OBJSTORE_CONFIG)"
+        - "--data-dir=/data"
+        - "--debug.accept-malformed-index"
         env:
         - name: OBJSTORE_CONFIG
           valueFrom:
@@ -53,11 +53,9 @@ spec:
           periodSeconds: 5
         terminationMessagePolicy: FallbackToLogsOnError
         volumeMounts:
-        - mountPath: /var/thanos/compact
+        - mountPath: /data
           name: data
           readOnly: false
+        resources:
+          {}
       terminationGracePeriodSeconds: 120
-      volumes:
-      - name: storage-volume-thanos-store
-        persistentVolumeClaim:
-          claimName: storage-volume-thanos-store

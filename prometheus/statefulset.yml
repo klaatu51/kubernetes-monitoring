@@ -88,9 +88,15 @@ spec:
           - "--log.level=debug"
           - "--tsdb.path=/data/"
           - "--prometheus.url=http://127.0.0.1:9090"
-          - "--objstore.config-file={type: GCS, config: {BUCKET_REPLACE_ME}}"
+          - "--objstore.config=$(OBJSTORE_CONFIG)"
           - "--reloader.config-file=/etc/prometheus/prometheus.yml"
           - "--reloader.config-envsubst-file=/etc/prometheus-shared/prometheus.yml"
+        env:
+         - name: OBJSTORE_CONFIG
+           valueFrom:
+             secretKeyRef:
+               key: thanos.yaml
+               name: thanos-objstore-config
         volumeMounts:
           - name: prometheus-storage
             mountPath: /data/
