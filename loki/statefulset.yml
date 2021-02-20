@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: loki
-  namespace: default
+  namespace: monitoring
   labels:
     app: loki
 spec:
