@@ -49,4 +49,7 @@ spec:
           name: grpc
         - containerPort: 9090
           name: http
-        resources: {}
+        resources: 
+          {}
+        terminationMessagePolicy: FallbackToLogsOnError
+      terminationGracePeriodSeconds: 120

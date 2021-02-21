@@ -27,7 +27,7 @@ spec:
         args:
         - "store"
         - "--log.level=debug"
-        - "--data-dir=/data/"
+        - "--data-dir=/var/thanos/store"
         - "--objstore.config=$(OBJSTORE_CONFIG)"
         env:
         - name: OBJSTORE_CONFIG
@@ -54,17 +54,21 @@ spec:
             port: 10902
             scheme: HTTP
           periodSeconds: 5
+        resources:
+          {}
         terminationMessagePolicy: FallbackToLogsOnError
         volumeMounts:
-        - name: thanos-storage
-          mountPath: /data/
+        - name: thanos-store
+          mountPath: /var/thanos/store
+          readOnly: false
       terminationGracePeriodSeconds: 120
   volumeClaimTemplates:
   - metadata:
-      name: thanos-storage
+      name: thanos-store
     spec:
       storageClassName: standard
-      accessModes: ["ReadWriteOnce"]
+      accessModes: 
+        - "ReadWriteOnce"
       resources:
         requests:
           storage: 8Gi

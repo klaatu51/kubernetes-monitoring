@@ -17,8 +17,19 @@ spec:
       labels:
         app: prometheus
         component: server
-        thanos-store-api: "true"
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - prometheus
+              namespaces:
+                - "monitoring"
+              topologyKey: "kubernetes.io/hostnames"
       securityContext:
         fsGroup: 2000
         runAsUser: 1000

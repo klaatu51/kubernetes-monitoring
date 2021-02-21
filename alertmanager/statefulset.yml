@@ -21,6 +21,18 @@ spec:
         app: prometheus
         component: alertmanager
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchExpressions:
+                  - key: app
+                    operator: In
+                    values:
+                      - alertmanager
+              namespaces:
+                - "monitoring"
+              topologyKey: "kubernetes.io/hostnames"
       containers:
       - name: alertmanager
         image: quay.io/prometheus/alertmanager:v0.20.0
